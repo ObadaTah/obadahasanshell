@@ -6,12 +6,11 @@
 #include <sys/types.h>
 #include <errno.h>
 #include <limits.h>
-#include <utils.h>
+#include <./utils.h>
 
 #define MAX_INPUT_LINE 1024 // Maximum length of a single input line
 #define MAX_ARGS 64         // Maximum number of arguments per command
 #define MAX_COMMANDS 10     // Maximum number of commands separated by ';'
-#define PROMPT_SYMBOL "> "  // The symbol part of the shell prompt
 
 // --- Function Prototypes ---
 char *read_input_line();
