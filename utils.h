@@ -1,5 +1,3 @@
-#ifndef UTILS_H_INCLUDED
-#define UTILS_H_INCLUDED
 
 // --- Function Prototypes ---
 char *read_input_line();
@@ -8,5 +6,3 @@ int parse_command_args(char *command, char **args);
 void execute_command(char **args);
 int handle_cd_command(char **args, int num_args);
 void print_prompt(); // New function to print the prompt
-
-#endif
