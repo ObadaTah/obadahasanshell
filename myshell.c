@@ -1,26 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>    // For fork, execvp, chdir, getcwd
-#include <sys/wait.h>  // For waitpid
-#include <sys/types.h> // For pid_t
-#include <errno.h>     // For error handling
-#include <limits.h>    // For PATH_MAX (optional, fallback provided)
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <limits.h>
 
-#define MAX_INPUT_LINE 1024 // Maximum length of a single input line
-#define MAX_ARGS 64         // Maximum number of arguments per command
-#define MAX_COMMANDS 10     // Maximum number of commands separated by ';'
-#define PROMPT_SYMBOL "> "  // The symbol part of the shell prompt
+#define MAX_INPUT_LINE 1024
+#define MAX_ARGS 64
+#define MAX_COMMANDS 10
+#define PROMPT_SYMBOL " ObadaHasanShell> "
 
-// --- Function Prototypes ---
 char *read_input_line();
 int split_commands(char *line, char **commands);
 int parse_command_args(char *command, char **args);
 void execute_command(char **args);
 int handle_cd_command(char **args, int num_args);
-void print_prompt(); // New function to print the prompt
+void print_prompt();
 
-// --- Main Function ---
 int main()
 {
     char *line;
@@ -30,10 +28,9 @@ int main()
     pid_t pids[MAX_COMMANDS];
     int num_children = 0;
 
-    // Main shell loop
     while (1)
     {
-        print_prompt(); // Print the prompt with the current directory
+        print_prompt();
         fflush(stdout);
 
         line = read_input_line();
@@ -71,7 +68,6 @@ int main()
                 continue;
             }
 
-            // --- Built-in Command Check ---
             if (strcmp(args[0], "quit") == 0)
             {
                 free(line);
@@ -85,11 +81,10 @@ int main()
             if (strcmp(args[0], "cd") == 0)
             {
                 handle_cd_command(args, num_args);
-                // No error check needed here as handle_cd prints errors
-                continue; // Skip fork/exec for cd
+
+                continue;
             }
 
-            // --- External Command Execution ---
             pid_t pid = fork();
 
             if (pid < 0)
@@ -99,13 +94,11 @@ int main()
             }
             else if (pid == 0)
             {
-                // Child Process
                 execute_command(args);
-                exit(EXIT_FAILURE); // Exit child if execvp fails
+                exit(EXIT_FAILURE);
             }
             else
             {
-                // Parent Process
                 if (num_children < MAX_COMMANDS)
                 {
                     pids[num_children++] = pid;
@@ -116,51 +109,33 @@ int main()
                     wait(NULL);
                 }
             }
-        } // End command loop
-
-        // Wait for children
+        }
         for (int i = 0; i < num_children; i++)
         {
             int status;
             waitpid(pids[i], &status, 0);
         }
 
-        free(line); // Free input line
-
-    } // End main loop
+        free(line);
+    }
 
     return EXIT_SUCCESS;
 }
 
-// --- Function Implementations ---
-
-/**
- * @brief Prints the shell prompt, including the current working directory.
- */
 void print_prompt()
 {
-    char cwd[PATH_MAX]; // Buffer to hold the current working directory path
-
-    // Get the current working directory
+    char cwd[PATH_MAX];
     if (getcwd(cwd, sizeof(cwd)) != NULL)
     {
-        // Print directory and prompt symbol
         printf("%s%s", cwd, PROMPT_SYMBOL);
     }
     else
     {
-        // Error getting CWD, print a default prompt or error
         perror("myshell: getcwd error");
-        printf("?%s", PROMPT_SYMBOL); // Simple fallback prompt
+        printf("?%s", PROMPT_SYMBOL);
     }
 }
 
-/**
- * @brief Reads a line of input from stdin.
- * @return A dynamically allocated string containing the input line,
- * or NULL on EOF or allocation error. The caller must free the returned string.
- * Returns an empty string "" if the user just presses Enter.
- */
 char *read_input_line()
 {
     char *line = NULL;
@@ -180,17 +155,10 @@ char *read_input_line()
             return NULL;
         }
     }
-    line[strcspn(line, "\n")] = 0; // Remove trailing newline
+    line[strcspn(line, "\n")] = 0;
     return line;
 }
 
-/**
- * @brief Splits a line into commands based on the semicolon delimiter.
- * Modifies the input line by replacing ';' with null terminators.
- * @param line The input line string. This string will be modified.
- * @param commands An array of char pointers to store the start of each command.
- * @return The number of commands found, or -1 on error (e.g., too many commands).
- */
 int split_commands(char *line, char **commands)
 {
     int count = 0;
@@ -219,14 +187,6 @@ int split_commands(char *line, char **commands)
     return count;
 }
 
-/**
- * @brief Parses a single command string into an array of arguments.
- * Modifies the input command string by replacing spaces with null terminators.
- * @param command The command string to parse. This string will be modified.
- * @param args An array of char pointers to store the arguments.
- * @return The number of arguments (argc), or -1 on error (e.g. too many args).
- * Returns 0 if the command string is empty or contains only whitespace.
- */
 int parse_command_args(char *command, char **args)
 {
     int count = 0;
@@ -248,11 +208,6 @@ int parse_command_args(char *command, char **args)
     return count;
 }
 
-/**
- * @brief Executes an external command using execvp.
- * Should be called from the child process. Does not return if successful.
- * @param args Null-terminated array of strings (arguments).
- */
 void execute_command(char **args)
 {
     if (args[0] == NULL)
@@ -262,17 +217,10 @@ void execute_command(char **args)
     }
     if (execvp(args[0], args) == -1)
     {
-        perror("myshell"); // Prints execvp error
+        perror("myshell");
     }
-    // If execvp fails, the child MUST exit. This is handled in the main loop.
 }
 
-/**
- * @brief Handles the built-in 'cd' command. Executes in the parent process.
- * @param args Null-terminated array of arguments (args[0] is "cd").
- * @param num_args The number of arguments, including "cd".
- * @return 0 on success, -1 on failure.
- */
 int handle_cd_command(char **args, int num_args)
 {
     char *target_dir = NULL;
@@ -298,8 +246,8 @@ int handle_cd_command(char **args, int num_args)
 
     if (chdir(target_dir) != 0)
     {
-        perror("myshell: cd"); // Prints chdir error
+        perror("myshell: cd");
         return -1;
     }
-    return 0; // Success
+    return 0;
 }
